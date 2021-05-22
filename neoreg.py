@@ -265,7 +265,8 @@ class session(Thread):
             else:
                 log.error("Only support Socks5 protocol")
                 return False
-        except OSError:
+        except OSError as e:
+            log.error(str(e))
             return False
         except timeout:
             return False
@@ -302,9 +303,12 @@ class session(Thread):
         return base64.b64decode(data.translate(DecodeMap))
 
     def setupRemoteSession(self, target, port):
+        log.debug("start forward "+str(target)+" "+str(port))
         self.mark = self.session_mark()
         target_data = ("%s|%d" % (target, port)).encode()
-        headers = {K["X-CMD"]: self.mark+V["CONNECT"], K["X-TARGET"]: self.encode_target(target_data)}
+        headers = conn.headers
+        headers[K["X-CMD"]] = self.mark+V["CONNECT"]
+        headers[K["X-TARGET"]] = self.encode_target(target_data)
         self.headerupdate(headers)
         self.target = target
         self.port = port
@@ -683,8 +687,8 @@ if __name__ == '__main__':
 
     if 'url' in args:
         # neoreg connect
-        if args.v > 2:
-            args.v = 2
+        if args.v > 3:
+            args.v = 3
 
         LOCALDNS = args.local_dns
 
@@ -748,7 +752,7 @@ if __name__ == '__main__':
             conn.verify = False
             conn.headers['Accept-Encoding'] = 'gzip, deflate'
             conn.headers['User-Agent'] = USERAGENT
-
+            conn.headers["Cookie"] = INIT_COOKIE
             servSock_start = False
             askGeorg(conn, urls, redirect_urls)
 
